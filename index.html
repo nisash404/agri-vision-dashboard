@@ -502,7 +502,7 @@ body {
             <!-- NDVI History -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <span><span class="chart-dot" style="background:var(--cyan);"></span>NDVI_HISTORY // MONTHLY</span>
+                    <span><span class="chart-dot" style="background:var(--cyan);"></span>NDVI_DEGRADATION_CURVE // HUD</span>
                 </div>
                 <div class="chart-body" id="ndvi-chart"></div>
             </div>
@@ -746,45 +746,139 @@ function renderMoistureChart(v) {
 }
 
 function renderNdviChart(v) {
-    const barColors = v.ndvi.map(val => val > 0.5 ? '#00ff88' : val > 0.3 ? '#ffcc00' : '#ff3333');
+    // Historical baseline: flat line at the average of first 3 NDVI values (the "healthy" reference)
+    const baselineVal = parseFloat(((v.ndvi[0] + v.ndvi[1] + v.ndvi[2]) / 3).toFixed(2));
+    const baselineSeries = MONTHS.map(() => baselineVal);
+
+    // Determine dominant color from latest reading
+    const latest = v.ndvi[v.ndvi.length - 1];
+    const lineColor = latest > 0.5 ? '#00ff88' : latest > 0.3 ? '#ffcc00' : '#ff3333';
+    const lineGlow = latest > 0.5 ? 'rgba(0,255,136,0.3)' : latest > 0.3 ? 'rgba(255,204,0,0.3)' : 'rgba(255,51,51,0.3)';
+
+    // Build per-point color array for data labels
+    const pointColors = v.ndvi.map(val => val > 0.5 ? '#00ff88' : val > 0.3 ? '#ffcc00' : '#ff3333');
 
     const opts = {
-        series: [{ name: 'NDVI', data: v.ndvi }],
+        series: [
+            { name: 'Baseline Reference', data: baselineSeries },
+            { name: 'NDVI Reading', data: v.ndvi }
+        ],
         chart: {
-            type: 'bar', height: 220,
-            foreColor: '#666',
+            type: 'area', height: 220,
+            foreColor: '#555',
             toolbar: { show: false },
-            animations: { enabled: true, speed: 400 },
+            animations: { enabled: true, easing: 'easeinout', speed: 1200 },
             background: 'transparent',
-        },
-        colors: barColors,
-        plotOptions: {
-            bar: {
-                borderRadius: 3, columnWidth: '60%',
-                distributed: true,
-                dataLabels: { position: 'top' }
+            dropShadow: {
+                enabled: true, top: 3, left: 0, blur: 8,
+                color: lineColor, opacity: 0.25
             }
         },
+        colors: ['#444', lineColor],
         fill: {
-            type: 'gradient',
-            gradient: { shade: 'dark', type: 'vertical', shadeIntensity: 0.4, opacityFrom: 1, opacityTo: 0.8 }
+            type: ['solid', 'gradient'],
+            opacity: [0, 1],
+            gradient: {
+                shade: 'dark', type: 'vertical',
+                shadeIntensity: 1,
+                gradientToColors: ['transparent'],
+                opacityFrom: 0.5, opacityTo: 0.02,
+                stops: [0, 95, 100]
+            }
         },
-        dataLabels: {
-            enabled: true,
-            formatter: (val) => val.toFixed(2),
-            style: { fontFamily: 'JetBrains Mono', fontSize: '9px', colors: ['#888'] },
-            offsetY: -18,
+        stroke: {
+            curve: 'smooth',
+            width: [1.5, 3],
+            dashArray: [6, 0]
         },
-        xaxis: { categories: MONTHS, labels: { style: { fontFamily: 'JetBrains Mono', fontSize: '10px' } } },
-        yaxis: { min: 0, max: 1, title: { text: 'NDVI Index', style: { fontFamily: 'JetBrains Mono', fontSize: '10px' } } },
+        markers: {
+            size: [0, 4],
+            colors: ['transparent', lineColor],
+            strokeWidth: 0,
+            hover: { size: 7, sizeOffset: 3 },
+            discrete: v.ndvi.map((val, i) => ({
+                seriesIndex: 1, dataPointIndex: i, size: 4,
+                fillColor: val > 0.5 ? '#00ff88' : val > 0.3 ? '#ffcc00' : '#ff3333',
+                strokeColor: 'transparent'
+            }))
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+            categories: MONTHS,
+            labels: { style: { fontFamily: 'JetBrains Mono', fontSize: '10px', colors: '#555' } },
+            axisBorder: { color: '#222' },
+            axisTicks: { color: '#222' }
+        },
+        yaxis: {
+            min: 0, max: 1, tickAmount: 5,
+            title: { text: 'NDVI INDEX', style: { fontFamily: 'JetBrains Mono', fontSize: '9px', color: '#555' } },
+            labels: {
+                style: { fontFamily: 'JetBrains Mono', fontSize: '10px' },
+                formatter: (val) => val.toFixed(1)
+            }
+        },
         theme: { mode: 'dark' },
-        grid: { borderColor: '#1a1a1a', strokeDashArray: 4 },
+        grid: {
+            borderColor: '#151515',
+            strokeDashArray: 3,
+            xaxis: { lines: { show: true } },
+            padding: { left: 10, right: 10 }
+        },
         tooltip: {
             theme: 'dark',
-            style: { fontFamily: 'JetBrains Mono' },
-            y: { formatter: (val) => val.toFixed(3) }
+            style: { fontFamily: 'JetBrains Mono', fontSize: '12px' },
+            custom: function({series, seriesIndex, dataPointIndex, w}) {
+                const val = series[1][dataPointIndex];
+                const base = series[0][dataPointIndex];
+                const delta = (val - base).toFixed(4);
+                const status = val > 0.5 ? 'HEALTHY' : val > 0.3 ? 'DEGRADING' : 'CRITICAL';
+                const statusColor = val > 0.5 ? '#00ff88' : val > 0.3 ? '#ffcc00' : '#ff3333';
+                return `<div style="background:#0a0a0f;border:1px solid ${statusColor};border-radius:6px;padding:10px 14px;font-family:JetBrains Mono;font-size:11px;color:#eee;box-shadow:0 0 15px ${statusColor}33;">
+                    <div style="color:#555;font-size:9px;letter-spacing:2px;margin-bottom:6px;">NDVI_DIAGNOSTIC // ${MONTHS[dataPointIndex]}</div>
+                    <div style="font-size:20px;font-weight:900;color:${statusColor};text-shadow:0 0 10px ${statusColor};">${val.toFixed(4)}</div>
+                    <div style="margin-top:6px;color:#666;font-size:10px;">BASELINE: ${base.toFixed(2)} &nbsp;|&nbsp; Δ: <span style="color:${statusColor}">${delta}</span></div>
+                    <div style="margin-top:4px;font-weight:700;color:${statusColor};font-size:10px;letter-spacing:1px;">${status}</div>
+                </div>`;
+            }
         },
-        legend: { show: false },
+        legend: { fontFamily: 'JetBrains Mono', fontSize: '10px', labels: { colors: '#555' } },
+        annotations: {
+            yaxis: [
+                {
+                    y: 0.5,
+                    borderColor: '#00ff8844',
+                    strokeDashArray: 4,
+                    label: {
+                        text: 'HEALTHY',
+                        borderColor: 'transparent',
+                        style: { color: '#00ff88', background: 'transparent', fontFamily: 'JetBrains Mono', fontSize: '8px' },
+                        position: 'front', offsetX: -5
+                    }
+                },
+                {
+                    y: 0.3,
+                    borderColor: '#ffcc0044',
+                    strokeDashArray: 4,
+                    label: {
+                        text: 'WARNING',
+                        borderColor: 'transparent',
+                        style: { color: '#ffcc00', background: 'transparent', fontFamily: 'JetBrains Mono', fontSize: '8px' },
+                        position: 'front', offsetX: -5
+                    }
+                },
+                {
+                    y: 0.3, y2: 0,
+                    fillColor: 'rgba(255,51,51,0.04)',
+                    borderColor: 'transparent',
+                    label: {
+                        text: 'CRITICAL ZONE',
+                        borderColor: '#ff3333',
+                        style: { color: '#fff', background: '#ff333399', fontFamily: 'JetBrains Mono', fontSize: '8px' },
+                        position: 'front'
+                    }
+                }
+            ]
+        }
     };
 
     if (ndviChart) {
