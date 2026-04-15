@@ -375,6 +375,44 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+
+/* ─── WARNING BANNER ─── */
+.warning-banner {
+    background: rgba(255,51,51,0.08);
+    border: 1px solid rgba(255,51,51,0.4);
+    border-radius: 8px;
+    padding: 0.8rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    animation: bannerPulse 2s infinite alternate;
+    box-shadow: 0 0 25px rgba(255,51,51,0.1);
+}
+.warning-banner.hidden { display: none; }
+.warning-banner-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    animation: statusPulse 0.8s infinite;
+}
+.warning-banner-text { flex: 1; line-height: 1.5; }
+.warning-banner-tag {
+    background: var(--red);
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+@keyframes bannerPulse {
+    0% { background: rgba(255,51,51,0.05); border-color: rgba(255,51,51,0.3); }
+    100% { background: rgba(255,51,51,0.12); border-color: rgba(255,51,51,0.5); }
+}
     </style>
 </head>
 <body>
@@ -412,6 +450,13 @@ body {
 
     <!-- ─── CONTENT ─── -->
     <div class="content">
+
+        <!-- Critical Warning Banner -->
+        <div class="warning-banner hidden" id="warning-banner">
+            <span class="warning-banner-icon">⚠</span>
+            <span class="warning-banner-text" id="warning-text">[ALERT] Anomaly threshold breached. Recommend dispatch of 2x Water Tankers to Gram Panchayat.</span>
+            <span class="warning-banner-tag">CRITICAL</span>
+        </div>
 
         <!-- Location Banner -->
         <div class="location-banner" id="location-banner">
@@ -593,6 +638,16 @@ function renderMetrics(v) {
     document.getElementById('loc-coords').textContent = `LAT: ${v.lat}  |  LON: ${v.lon}  |  GRID_REF: ${v.grid}`;
     document.getElementById('loc-scan').innerHTML = `SCAN_ID: S2A_${v.grid}_20260415<br>CLOUD_MASK: ${Math.floor(Math.random()*12)+3}%  |  PASS: ${Math.floor(Math.random()*4)+1}/4`;
 
+    // Warning banner
+    const banner = document.getElementById('warning-banner');
+    const bannerText = document.getElementById('warning-text');
+    if (v.status === 'critical') {
+        banner.classList.remove('hidden');
+        bannerText.textContent = `[ALERT] Anomaly threshold breached in ${v.name} (${v.anomaly}%). Recommend dispatch of 2x Water Tankers to ${v.block} Gram Panchayat.`;
+    } else {
+        banner.classList.add('hidden');
+    }
+
     // Metric cards
     document.getElementById('m-baseline').textContent = v.baseline + '%';
     document.getElementById('m-current').textContent = v.current + '%';
@@ -629,8 +684,14 @@ function renderMetrics(v) {
 }
 
 function renderMoistureChart(v) {
+    // Build flat baseline series (constant line at baseline value)
+    const baselineSeries = DAYS.map(() => v.baseline);
+    // Danger zone threshold = baseline - 15 (the -15% anomaly trigger)
+    const dangerThreshold = Math.round(v.baseline * 0.85);
+
     const opts = {
         series: [
+            { name: 'Historical Baseline', data: baselineSeries },
             { name: 'Actual Moisture', data: v.moisture },
             { name: 'Predicted Trend', data: v.predicted }
         ],
@@ -638,16 +699,17 @@ function renderMoistureChart(v) {
             type: 'area', height: 280,
             foreColor: '#666',
             toolbar: { show: false },
-            animations: { enabled: true, easing: 'easeinout', speed: 600 },
+            animations: { enabled: true, easing: 'easeinout', speed: 800 },
             background: 'transparent',
         },
-        colors: ['#00ff88', '#ff3333'],
+        colors: ['#00ccff', '#00ff88', '#ff3333'],
         fill: {
-            type: 'gradient',
+            type: ['solid', 'gradient', 'gradient'],
+            opacity: [0.05, 1, 1],
             gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] }
         },
         dataLabels: { enabled: false },
-        stroke: { curve: 'smooth', width: [3, 3], dashArray: [0, 5] },
+        stroke: { curve: 'smooth', width: [2, 3, 3], dashArray: [8, 0, 5] },
         xaxis: { categories: DAYS, labels: { style: { fontFamily: 'JetBrains Mono', fontSize: '10px' } } },
         yaxis: { title: { text: 'Soil Moisture (%)', style: { fontFamily: 'JetBrains Mono', fontSize: '10px' } }, min: 0, max: 60 },
         theme: { mode: 'dark' },
@@ -660,13 +722,14 @@ function renderMoistureChart(v) {
         legend: { fontFamily: 'JetBrains Mono', fontSize: '11px', labels: { colors: '#888' } },
         annotations: {
             yaxis: [{
-                y: v.baseline * 0.6,
-                borderColor: '#ff3333',
-                strokeDashArray: 4,
+                y: dangerThreshold, y2: 0,
+                fillColor: 'rgba(255,51,51,0.06)',
+                borderColor: 'transparent',
                 label: {
-                    text: 'CRITICAL THRESHOLD',
+                    text: `DANGER ZONE (below ${dangerThreshold}%)`,
                     borderColor: '#ff3333',
-                    style: { color: '#fff', background: '#ff3333', fontFamily: 'JetBrains Mono', fontSize: '9px' }
+                    style: { color: '#fff', background: '#ff3333', fontFamily: 'JetBrains Mono', fontSize: '9px' },
+                    position: 'front'
                 }
             }]
         }
@@ -758,11 +821,13 @@ function selectVillage(index) {
 
 const ALERT_TEMPLATES = [
     { msg: (v) => `[SCAN] ${v.name}: Moisture reading ${v.current}% (baseline ${v.baseline}%)`, type: 'info' },
-    { msg: (v) => `[ANOMALY] ${v.name}: Deviation ${v.anomaly}% detected`, type: v => v.status === 'critical' ? 'critical' : v.status === 'warning' ? 'warning' : 'info' },
-    { msg: (v) => `[NDVI] ${v.name}: Index ${v.ndvi[v.ndvi.length-1].toFixed(2)} — ${v.ndvi[v.ndvi.length-1] < 0.3 ? 'STRESS' : 'STABLE'}`, type: v => v.ndvi[v.ndvi.length-1] < 0.3 ? 'critical' : 'info' },
+    { msg: (v) => `[ANOMALY] ${v.name}: Deviation ${v.anomaly}% detected — ${Math.abs(v.anomaly) >= 15 ? 'BREACH' : 'monitoring'}`, type: v => v.status === 'critical' ? 'critical' : v.status === 'warning' ? 'warning' : 'info' },
+    { msg: (v) => `[NDVI] ${v.name}: Index ${v.ndvi[v.ndvi.length-1].toFixed(2)} — ${v.ndvi[v.ndvi.length-1] < 0.3 ? 'VEGETATION STRESS DETECTED' : 'STABLE'}`, type: v => v.ndvi[v.ndvi.length-1] < 0.3 ? 'critical' : 'info' },
     { msg: (v) => `[UPLINK] Sentinel-2 pass complete for GRID ${v.grid}`, type: 'info' },
-    { msg: (v) => `[DISPATCH] BDO alerted for ${v.block} — anomaly threshold breached`, type: 'critical' },
-    { msg: (v) => `[CLOUD] Cloud mask applied: ${Math.floor(Math.random()*15)+2}% coverage`, type: 'info' },
+    { msg: (v) => `[DISPATCH] Anomaly threshold breached in ${v.name}. Recommend dispatch of 2x Water Tankers to ${v.block} Gram Panchayat`, type: 'critical' },
+    { msg: (v) => `[CLOUD] Cloud mask applied: ${Math.floor(Math.random()*15)+2}% coverage on ${v.grid}`, type: 'info' },
+    { msg: (v) => `[BDO] Alert forwarded to Block Development Officer, ${v.block}. SMS sent to registered mobile.`, type: 'critical' },
+    { msg: (v) => `[PIPELINE] Band B08/B04 rasterio extraction complete for ${v.name}. NDVI computed.`, type: 'info' },
 ];
 
 function pushAlert() {
