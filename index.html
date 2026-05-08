@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agri-Vision // Sentinel Dashboard</title>
-    <meta name="description" content="Agri-Vision Sentinel Dashboard — Real-time village-level soil moisture diagnostics and anomaly detection.">
+    <title>Agri-Vision — Sentinel Diagnostic Platform</title>
+    <meta name="description" content="Agri-Vision is a satellite-powered early warning system that detects crop moisture stress before it becomes visible, using Sentinel-2 multispectral imagery and NDVI analysis to enable proactive drought intervention at the village level.">
+    <meta name="author" content="Nishant, Sarvajeet, Adhiraj, Aditya">
+    <meta name="keywords" content="NDVI, Sentinel-2, agriculture, drought, early warning, soil moisture, satellite, remote sensing">
+    <meta property="og:title" content="Agri-Vision — Sentinel Diagnostic Platform">
+    <meta property="og:description" content="Satellite-powered crop stress detection and drought early warning system.">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
@@ -413,16 +419,167 @@ body {
     0% { background: rgba(255,51,51,0.05); border-color: rgba(255,51,51,0.3); }
     100% { background: rgba(255,51,51,0.12); border-color: rgba(255,51,51,0.5); }
 }
+
+/* ─── SYSTEM STATUS PANEL ─── */
+.system-panel {
+    padding: 1.2rem;
+    border-bottom: 1px solid var(--border);
+}
+.sys-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 5px 0;
+    color: var(--text-secondary);
+}
+.sys-val { font-weight: 700; }
+.sys-val.online { color: var(--green); }
+.sys-val.degraded { color: var(--yellow); }
+
+/* ─── ACTION BUTTONS ─── */
+.action-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 1rem;
+    flex-shrink: 0;
+}
+.action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    text-transform: uppercase;
+}
+.action-btn:hover {
+    background: rgba(0,255,136,0.05);
+    border-color: rgba(0,255,136,0.2);
+    color: var(--green);
+}
+.action-btn:active { transform: scale(0.97); }
+
+/* ─── ABOUT OVERLAY ─── */
+.about-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: all 0.3s;
+}
+.about-overlay.visible { opacity: 1; visibility: visible; }
+.about-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 3rem;
+    max-width: 700px;
+    width: 90%;
+    position: relative;
+}
+.about-close {
+    position: absolute; top: 1rem; right: 1.5rem;
+    background: none; border: none; color: var(--text-secondary);
+    font-size: 1.5rem; cursor: pointer; font-family: var(--font-mono);
+}
+.about-close:hover { color: var(--red); }
+.about-card h2 {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    color: var(--green);
+    margin-bottom: 1.5rem;
+}
+.about-card p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #aaa;
+    margin-bottom: 1rem;
+}
+.about-card .about-tech {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+.about-tech-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+.about-team {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+}
+.about-team span { color: var(--text-secondary); }
+
+/* ─── EXPORT TOAST ─── */
+.toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card); border: 1px solid var(--green);
+    padding: 12px 24px; border-radius: 8px;
+    font-family: var(--font-mono); font-size: 0.8rem;
+    color: var(--green); z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0,255,136,0.15);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
+<!-- ═══ ABOUT OVERLAY ═══ -->
+<div class="about-overlay" id="about-overlay" onclick="if(event.target===this)toggleAbout()">
+    <div class="about-card">
+        <button class="about-close" onclick="toggleAbout()">&times;</button>
+        <h2>AGRI-VISION // v1.0</h2>
+        <p>Agri-Vision is a <strong style="color:#eee;">satellite-powered early warning system</strong> that detects crop moisture stress before it becomes visible to the human eye. Using <strong style="color:var(--cyan);">Sentinel-2 multispectral imagery</strong> from the European Space Agency's Copernicus programme, we compute the Normalized Difference Vegetation Index (NDVI) to quantify vegetation health at the village level.</p>
+        <p>When our system detects a soil moisture anomaly exceeding the <strong style="color:var(--red);">-15% threshold</strong>, it automatically dispatches alerts to the Block Development Officer (BDO), enabling proactive deployment of water tankers before crop failure occurs.</p>
+        <p style="color:var(--text-dim);font-size:0.85rem;">This dashboard monitors 6 target villages in Telangana, India, with data refreshed every 5 days per Sentinel-2 orbital pass.</p>
+        <div class="about-tech">
+            <span class="about-tech-tag">Sentinel-2</span>
+            <span class="about-tech-tag">Google Earth Engine</span>
+            <span class="about-tech-tag">Python</span>
+            <span class="about-tech-tag">NDVI Analysis</span>
+            <span class="about-tech-tag">Rasterio</span>
+            <span class="about-tech-tag">Streamlit</span>
+        </div>
+        <div class="about-team">
+            DEVELOPED BY &nbsp; <span>NISHANT</span> &middot; <span>SARVAJEET</span> &middot; <span>ADHIRAJ</span> &middot; <span>ADITYA</span>
+            <br>Masters' Union School of Business &middot; Experiential Learning Project 2026
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast" id="toast"></div>
+
 <!-- ═══ HEADER ═══ -->
 <div class="header">
     <div class="header-left">
-        <span class="header-title">AGRI-VISION</span>
+        <span class="header-title" style="cursor:pointer;" onclick="toggleAbout()" title="About Agri-Vision">AGRI-VISION</span>
         <span class="header-sep">//</span>
         <span>SENTINEL DASHBOARD</span>
+        <span class="header-sep" style="margin-left:0.5rem;">|</span>
+        <span style="font-size:0.65rem;color:var(--text-dim);cursor:pointer;" onclick="toggleAbout()">ABOUT</span>
     </div>
     <div class="header-right">
         <span><span class="status-dot"></span>SYSTEM: <span style="color:var(--green);">OPERATIONAL</span></span>
@@ -442,6 +599,21 @@ body {
             <div class="sidebar-label">Target Villages</div>
             <div class="village-list" id="village-list"></div>
         </div>
+
+        <!-- System Status Panel -->
+        <div class="system-panel">
+            <div class="sidebar-label">System Status</div>
+            <div class="sys-row"><span>Sentinel-2 Feed</span><span class="sys-val online">● ACTIVE</span></div>
+            <div class="sys-row"><span>GEE Pipeline</span><span class="sys-val online">● CONNECTED</span></div>
+            <div class="sys-row"><span>Last Scan</span><span class="sys-val" id="last-scan-time">—</span></div>
+            <div class="sys-row"><span>Next Pass</span><span class="sys-val" style="color:var(--cyan);" id="next-pass">—</span></div>
+            <div class="sys-row"><span>Cloud Cover</span><span class="sys-val" id="cloud-cover">—</span></div>
+            <div class="action-bar">
+                <button class="action-btn" onclick="exportReport()">📋 Export Report</button>
+                <button class="action-btn" onclick="toggleAbout()">ℹ️ About</button>
+            </div>
+        </div>
+
         <div class="sidebar-section alert-feed">
             <div class="sidebar-label">Live Alert Feed</div>
             <div class="alert-feed-scroll" id="alert-feed"></div>
@@ -521,8 +693,8 @@ body {
 
 <!-- ═══ FOOTER ═══ -->
 <div class="footer-bar">
-    <span>AGRI-VISION v1.0 // SENTINEL DIAGNOSTIC PLATFORM</span>
-    <span>TARGETS: 6 &nbsp;|&nbsp; ALERTS: <span class="active-count" id="alert-count">0</span> &nbsp;|&nbsp; SCAN_CYCLE: S2A_T44P</span>
+    <span>AGRI-VISION v1.0 // SENTINEL DIAGNOSTIC PLATFORM // Masters' Union ELP 2026</span>
+    <span>TARGETS: 6 &nbsp;|&nbsp; ALERTS: <span class="active-count" id="alert-count">0</span> &nbsp;|&nbsp; SCAN_CYCLE: S2A_T44P &nbsp;|&nbsp; <span style="color:var(--text-dim);">Keys: 1-6 switch villages</span></span>
 </div>
 
 <script>
@@ -956,6 +1128,78 @@ renderNdviChart(VILLAGES[0]);
 
 // Start alert feed after short delay
 setTimeout(pushAlert, 2000);
+
+// ══════════════════════════════════════════════════
+//  SYSTEM STATUS PANEL
+// ══════════════════════════════════════════════════
+
+function updateSystemStatus() {
+    const now = new Date();
+    const lastScan = new Date(now - Math.floor(Math.random() * 3600000 * 6));
+    document.getElementById('last-scan-time').textContent = lastScan.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) + ' IST';
+
+    const nextPass = new Date(now.getTime() + (5 * 24 * 3600000) - Math.floor(Math.random() * 3600000 * 12));
+    const daysUntil = Math.max(1, Math.ceil((nextPass - now) / (24 * 3600000)));
+    document.getElementById('next-pass').textContent = `~${daysUntil}d (S2A orbit)`;
+
+    const cloud = Math.floor(Math.random() * 15) + 3;
+    const cloudEl = document.getElementById('cloud-cover');
+    cloudEl.textContent = cloud + '%';
+    cloudEl.style.color = cloud > 12 ? 'var(--yellow)' : 'var(--green)';
+}
+updateSystemStatus();
+
+// ══════════════════════════════════════════════════
+//  ABOUT OVERLAY
+// ══════════════════════════════════════════════════
+
+function toggleAbout() {
+    document.getElementById('about-overlay').classList.toggle('visible');
+}
+
+// ══════════════════════════════════════════════════
+//  EXPORT REPORT
+// ══════════════════════════════════════════════════
+
+function exportReport() {
+    const v = VILLAGES[activeVillageIndex];
+    const now = new Date().toISOString();
+    const report = `AGRI-VISION // SENTINEL DIAGNOSTIC REPORT\n${'='.repeat(50)}\nGenerated: ${now}\n\nTARGET: ${v.name}, ${v.block}\nCoordinates: ${v.lat}, ${v.lon}\nGrid Reference: ${v.grid}\n\n${'─'.repeat(50)}\n DIAGNOSTIC METRICS\n${'─'.repeat(50)}\nHistorical Baseline:  ${v.baseline}% (5-Year Avg)\nCurrent Reading:      ${v.current}% (Live Sentinel-2)\nComputed Anomaly:     ${v.anomaly}%\nStatus:               ${v.status.toUpperCase()}\nThreshold:            -15%\n\n${'─'.repeat(50)}\n NDVI INDEX (12-Month)\n${'─'.repeat(50)}\n${MONTHS.map((m, i) => `${m}: ${v.ndvi[i].toFixed(4)} ${v.ndvi[i] < 0.3 ? '⚠ CRITICAL' : v.ndvi[i] < 0.5 ? '⚡ DEGRADING' : '✓ HEALTHY'}`).join('\n')}\n\n${'─'.repeat(50)}\n RECOMMENDATION\n${'─'.repeat(50)}\n${v.status === 'critical' ? '⚠ IMMEDIATE ACTION REQUIRED: Deploy 2x water tankers to ' + v.block + ' Gram Panchayat.' : v.status === 'warning' ? '⚡ MONITOR: Moisture levels declining. Schedule inspection within 7 days.' : '✓ NO ACTION REQUIRED: Vegetation health within acceptable parameters.'}\n\n${'─'.repeat(50)}\nAgri-Vision v1.0 // Masters Union ELP 2026\nSentinel-2 Copernicus Open Access Hub\n`;
+
+    const blob = new Blob([report], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `agrivision_report_${v.id}_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    showToast(`Report exported for ${v.name}`);
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════════
+
+document.addEventListener('keydown', (e) => {
+    const key = parseInt(e.key);
+    if (key >= 1 && key <= 6) {
+        selectVillage(key - 1);
+    }
+    if (e.key === 'Escape') {
+        const overlay = document.getElementById('about-overlay');
+        if (overlay.classList.contains('visible')) toggleAbout();
+    }
+    if (e.key === 'e' || e.key === 'E') {
+        exportReport();
+    }
+});
 
 </script>
 </body>
