@@ -542,6 +542,176 @@ body {
     pointer-events: none;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── MOBILE HAMBURGER ─── */
+.hamburger {
+    display: none;
+    background: none; border: none;
+    color: var(--text-secondary);
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    transition: color 0.2s;
+}
+.hamburger:hover { color: var(--green); }
+.sidebar-backdrop {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    z-index: 49;
+}
+
+/* ═══════════════════════════════════════════════ */
+/*  RESPONSIVE — TABLET (≤1024px)                 */
+/* ═══════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .sidebar { width: 240px; }
+    .header-right span:not(.header-clock):not(.status-dot) { font-size: 0.7rem; }
+    .metrics-row { grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; }
+    .metric-value { font-size: 2.8rem; }
+    .bottom-row { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════ */
+/*  RESPONSIVE — MOBILE (≤768px)                  */
+/* ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    body {
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* Header: compact */
+    .header {
+        height: 44px;
+        padding: 0 1rem;
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+    }
+    .header-left { gap: 0.5rem; }
+    .header-left span:not(.header-title):not(.header-sep) { display: none; }
+    .header-left .header-sep { display: none; }
+    .header-title { font-size: 0.8rem; letter-spacing: 2px; }
+    .header-right { gap: 0.6rem; font-size: 0.6rem; }
+    .header-right span:not(.header-clock) { display: none; }
+    .header-clock { font-size: 0.75rem; }
+    .hamburger { display: block; }
+
+    /* Main layout: vertical stack */
+    .main-layout {
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    /* Sidebar: off-canvas drawer */
+    .sidebar {
+        position: fixed;
+        top: 0; left: -300px;
+        width: 280px;
+        height: 100vh;
+        z-index: 50;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        box-shadow: none;
+    }
+    .sidebar.open {
+        left: 0;
+        box-shadow: 5px 0 30px rgba(0,0,0,0.5);
+    }
+    .sidebar-backdrop.visible {
+        display: block;
+    }
+
+    /* Content: full width, scrollable */
+    .content {
+        padding: 1rem;
+        gap: 1rem;
+        overflow: visible;
+    }
+
+    /* Warning banner */
+    .warning-banner {
+        font-size: 0.7rem;
+        padding: 0.6rem 1rem;
+        flex-wrap: wrap;
+    }
+    .warning-banner-tag { font-size: 0.6rem; margin-top: 6px; }
+
+    /* Location banner */
+    .location-banner {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    .location-value { font-size: 0.95rem; }
+    .location-coords { font-size: 0.65rem; }
+    .location-scan { text-align: left; font-size: 0.6rem; }
+
+    /* Metric cards: stack to 1 col */
+    .metrics-row {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+    .metric-card { padding: 1.2rem; }
+    .metric-value { font-size: 2.8rem; }
+    .metric-label { font-size: 0.6rem; }
+
+    /* Charts: full width */
+    .bottom-row {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+    .chart-header {
+        padding: 0.8rem 1rem;
+        font-size: 0.6rem;
+    }
+
+    /* Village grid: single column */
+    .village-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 0.8rem;
+    }
+    .grid-card { padding: 0.6rem; }
+    .grid-card-name { font-size: 0.6rem; }
+    .grid-card-anomaly { font-size: 0.9rem; }
+
+    /* Footer */
+    .footer-bar {
+        height: auto;
+        padding: 0.5rem 1rem;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.55rem;
+        text-align: center;
+    }
+
+    /* About overlay */
+    .about-card {
+        padding: 1.5rem;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    .about-card h2 { font-size: 1.1rem; }
+    .about-card p { font-size: 0.85rem; }
+    .about-tech { gap: 0.5rem; }
+    .about-tech-tag { font-size: 0.6rem; padding: 3px 8px; }
+    .about-team { font-size: 0.65rem; }
+}
+
+/* ═══════════════════════════════════════════════ */
+/*  RESPONSIVE — SMALL MOBILE (≤480px)            */
+/* ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .metric-value { font-size: 2.2rem; }
+    .village-grid { grid-template-columns: 1fr; }
+    .about-card { padding: 1.2rem; }
+    .about-card h2 { font-size: 0.9rem; letter-spacing: 2px; }
+    .about-card p { font-size: 0.8rem; line-height: 1.6; }
+}
     </style>
 </head>
 <body>
@@ -575,6 +745,7 @@ body {
 <!-- ═══ HEADER ═══ -->
 <div class="header">
     <div class="header-left">
+        <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
         <span class="header-title" style="cursor:pointer;" onclick="toggleAbout()" title="About Agri-Vision">AGRI-VISION</span>
         <span class="header-sep">//</span>
         <span>SENTINEL DASHBOARD</span>
@@ -589,6 +760,9 @@ body {
         <span class="header-clock" id="header-clock">00:00:00</span>
     </div>
 </div>
+
+<!-- Mobile sidebar backdrop -->
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
 <!-- ═══ MAIN ═══ -->
 <div class="main-layout">
@@ -1195,11 +1369,35 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         const overlay = document.getElementById('about-overlay');
         if (overlay.classList.contains('visible')) toggleAbout();
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar.classList.contains('open')) toggleSidebar();
     }
     if (e.key === 'e' || e.key === 'E') {
         exportReport();
     }
 });
+
+// ══════════════════════════════════════════════════
+//  MOBILE SIDEBAR TOGGLE
+// ══════════════════════════════════════════════════
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    sidebar.classList.toggle('open');
+    backdrop.classList.toggle('visible');
+    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+}
+
+// Close sidebar when a village is selected on mobile
+const origSelectVillage = selectVillage;
+selectVillage = function(index) {
+    origSelectVillage(index);
+    if (window.innerWidth <= 768) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar.classList.contains('open')) toggleSidebar();
+    }
+};
 
 </script>
 </body>
